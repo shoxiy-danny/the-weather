@@ -28,10 +28,10 @@ export async function fetchCityByCoords(longitude, latitude) {
   }
 }
 
-// IP-based geolocation fallback using ip-api.com
+// IP-based geolocation using ipinfo.io
 export async function fetchCityByIP(ip) {
   const cleanIp = ip.replace(/^::ffff:/, '')
-  const res = await fetch(`http://ip-api.com/json/${cleanIp}?fields=status,country,countryCode,region,regionName,city,lat,lon`)
+  const res = await fetch(`https://ipinfo.io/${cleanIp}?fields=city,region,country,loc`)
 
   if (!res.ok) {
     throw new Error('IP定位服务请求失败')
@@ -39,16 +39,18 @@ export async function fetchCityByIP(ip) {
 
   const data = await res.json()
 
-  if (data.status !== 'success') {
+  if (!data.city || !data.loc) {
     throw new Error('IP定位失败，请手动选择城市')
   }
+
+  const [lat, lon] = data.loc.split(',')
 
   return {
     name: data.city,
     adm2: data.city,
-    adm1: data.regionName,
+    adm1: data.region,
     country: data.country,
-    lat: data.lat,
-    lon: data.lon,
+    lat: parseFloat(lat),
+    lon: parseFloat(lon),
   }
 }
