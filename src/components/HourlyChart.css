@@ -1,0 +1,9 @@
+.hourly-chart {
+  padding-top: 12px;
+  padding-bottom: 8px;
+}
+
+.chart-container {
+  height: 180px;
+  margin: 0 -8px;
+}
