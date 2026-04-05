@@ -14,20 +14,32 @@ router.get('/reverse', async (req, res) => {
                  || req.socket.remoteAddress
                  || '127.0.0.1'
 
+    console.log(`[Geo] lat=${lat}, lon=${lon}, ip=${clientIp}`)
+
     let city
 
     if (lat && lon) {
       // Primary: use GPS coordinates
       try {
+        console.log('[Geo] 使用GPS坐标定位...')
         city = await fetchCityByCoords(lon, lat)
+        console.log('[Geo] GPS定位成功:', city)
       } catch (err) {
         // Fallback to IP if coordinates fail
-        console.warn('[Geo] 坐标定位失败，尝试IP定位:', err.message)
-        city = await fetchCityByIP(clientIp)
+        console.warn('[Geo] GPS定位失败，尝试IP定位:', err.message)
+        try {
+          city = await fetchCityByIP(clientIp)
+          console.log('[Geo] IP定位成功:', city)
+        } catch (ipErr) {
+          console.error('[Geo] IP定位也失败:', ipErr.message)
+          throw ipErr
+        }
       }
     } else {
       // No coordinates provided, use IP
+      console.log('[Geo] 无坐标，使用IP定位...')
       city = await fetchCityByIP(clientIp)
+      console.log('[Geo] IP定位成功:', city)
     }
 
     res.json(city)
