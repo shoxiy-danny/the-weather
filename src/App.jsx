@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useWeather } from './hooks/useWeather'
+import { useGeolocation } from './hooks/useGeolocation'
 import { CITIES } from './utils/constants'
 import WeatherIcon from './components/WeatherIcon'
 import CurrentWeather from './components/CurrentWeather'
@@ -13,6 +14,23 @@ import './components/DailyForecast.css'
 function App() {
   const [selectedCity, setSelectedCity] = useState(CITIES[0])
   const { weatherData, loading, error, retry } = useWeather(selectedCity.id)
+  const { getLocation, loading: locLoading, error: locError } = useGeolocation()
+
+  const handleLocate = async () => {
+    try {
+      const city = await getLocation()
+      // Check if this city is in our predefined list
+      const matchedCity = CITIES.find(c => c.name === city.name || c.name === city.adm2)
+      if (matchedCity) {
+        setSelectedCity(matchedCity)
+      } else {
+        // City not in list, use it anyway
+        setSelectedCity({ id: city.id, name: city.name, isCustom: true })
+      }
+    } catch (err) {
+      console.error('定位失败:', err.message)
+    }
+  }
 
   if (loading) {
     return (
@@ -38,6 +56,15 @@ function App() {
   return (
     <div className="app">
       <div className="city-selector">
+        <button
+          className="city-button locate-button"
+          onClick={handleLocate}
+          disabled={locLoading}
+          title={locError || '获取当前位置'}
+        >
+          {locLoading ? '⏳' : '📍'}
+          <span className="city-name">{locLoading ? '定位中...' : '定位'}</span>
+        </button>
         {CITIES.map(city => (
           <button
             key={city.id}

@@ -8,6 +8,10 @@ const dbPath = path.join(__dirname, 'data', 'weather.db')
 
 let db
 let SQL
+let saveTimer = null
+let autoSaveTimer = null
+const SAVE_DEBOUNCE_MS = 2000
+const AUTO_SAVE_INTERVAL_MS = 30000
 
 export async function initDb() {
   SQL = await initSqlJs()
@@ -49,15 +53,26 @@ export async function initDb() {
   }
 
   saveDb()
+  // Periodic auto-save to ensure data is persisted
+  autoSaveTimer = setInterval(() => {
+    if (db) {
+      const data = db.export()
+      const buffer = Buffer.from(data)
+      fs.writeFileSync(dbPath, buffer)
+    }
+  }, AUTO_SAVE_INTERVAL_MS)
   return db
 }
 
 export function saveDb() {
-  if (db) {
-    const data = db.export()
-    const buffer = Buffer.from(data)
-    fs.writeFileSync(dbPath, buffer)
-  }
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    if (db) {
+      const data = db.export()
+      const buffer = Buffer.from(data)
+      fs.writeFileSync(dbPath, buffer)
+    }
+  }, SAVE_DEBOUNCE_MS)
 }
 
 export function getDb() {
@@ -100,15 +115,20 @@ export function setCachedWeather(locationId, weatherType, data) {
 }
 
 export function closeDb() {
+  if (saveTimer) clearTimeout(saveTimer)
+  if (autoSaveTimer) clearInterval(autoSaveTimer)
   if (db) {
-    saveDb()
+    // Synchronous save on shutdown
+    const data = db.export()
+    const buffer = Buffer.from(data)
+    fs.writeFileSync(dbPath, buffer)
     db.close()
   }
 }
 
 export function incrementVisit() {
   db.run("UPDATE visitor_stats SET total_visits = total_visits + 1, last_visit = datetime('now') WHERE id = 1")
-  saveDb()
+  // Don't save on every visit - will be saved by debounced saveDb
 }
 
 export function getVisitStats() {

@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { initDb, closeDb } from './database.js'
 import weatherRoutes from './routes/weather.js'
+import geoRoutes from './routes/geo.js'
 
 dotenv.config()
 
@@ -20,6 +21,7 @@ async function start() {
 
     // Routes
     app.use('/api/weather', weatherRoutes)
+    app.use('/api/geo', geoRoutes)
 
     // Health check
     app.get('/api/health', (req, res) => {
